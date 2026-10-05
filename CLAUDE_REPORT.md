@@ -1,28 +1,30 @@
 # CLAUDE REPORT
 
 ## Estado
-COMPLETADO
+BLOQUEADO
 
 ## Tarea
-Tarea 002 — Validar activación automática del puente
+Tarea 003 — Validar bloqueo mediante pregunta abierta sin checkpoint
 
 ## Archivos modificados
-- `lib/main.dart`
-- `test/widget_test.dart`
-- `CLAUDE_REPORT.md`
+- `CLAUDE_REPORT.md` (único archivo modificado)
 
-## Resumen de implementación
-- Segundo botón visible `Reiniciar` que devuelve el contador a `0`.
-- Botón `Incrementar` y su comportamiento intactos.
-- Sin paquetes externos.
-- Tests: se mantiene el de `Incrementar` y se agregó uno que incrementa dos veces, pulsa `Reiniciar` y verifica que el contador vuelve a `0`.
+## Confirmaciones
+- No hubo cambios de código: no se tocó `lib/`, `test/`, `bridge/`, `MASTER.md`, `ADN_APP.md`, `CLAUDE.md` ni `NEXT_TASK.md`.
+- No se usó checkpoint, checkbox, botón, selector, menú ni formulario interactivo. La pregunta está escrita como texto abierto.
 
-## Resultados de validaciones
-- `flutter analyze`: No issues found.
-- `flutter test`: All tests passed (2 tests).
+## Validaciones realizadas
+- `git diff` antes del commit muestra cambios únicamente en `CLAUDE_REPORT.md`.
 
-## Problemas encontrados
-Ninguno.
+## PREGUNTA ABIERTA
+Contexto: La Tarea 003 pide validar que un bloqueo se devuelva como texto abierto en este reporte. Las fuentes de verdad (`MASTER.md`, `ADN_APP.md`, `NEXT_TASK.md`) no definen cuál será la Tarea 004, y esa decisión corresponde al Director.
 
-## Decisiones pendientes para ChatGPT o Javier
-Ninguna.
+Problema o decisión: Decidir cuál de dos validaciones de infraestructura debe convertirse en la Tarea 004.
+
+Opciones conocidas:
+A) Validar recuperación cuando el árbol local tiene cambios sin commit. Se comprobaría cómo se comporta el flujo (puente y Claude Code) si al iniciar una tarea el árbol de trabajo local no está limpio, por ejemplo al hacer pull, commit o push.
+B) Validar manejo de una ejecución de Claude que termina con código de salida distinto de 0. Se comprobaría cómo el puente detecta, registra y reporta una ejecución fallida, y qué queda en el repositorio y en `CLAUDE_REPORT.md`.
+
+Pregunta: ¿Cuál de las dos validaciones (A o B) deseas que sea la Tarea 004? ¿Cómo deseas que proceda?
+
+Claude Code se detiene aquí y espera una nueva versión de `NEXT_TASK.md`.
