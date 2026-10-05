@@ -1,27 +1,26 @@
 # NEXT TASK
 
-## Tarea 001 — Crear app Flutter mínima
+## Tarea 002 — Validar activación automática del puente
 
 ### Objetivo
-Crear una aplicación Flutter mínima llamada `director_ejecutor_test` para validar el flujo ChatGPT → GitHub → Claude Code → GitHub → ChatGPT.
+Comprobar que el flujo ChatGPT → GitHub → puente local → Claude Code → GitHub funciona sin que Javier ejecute manualmente `git pull` ni invoque Claude.
 
 ### Implementar
-1. Crear el proyecto Flutter en la raíz del repositorio.
-2. La pantalla principal debe mostrar:
-   - Título: `Prueba Director/Ejecutor`
-   - Texto: `Claude Code ejecuta. ChatGPT decide.`
-   - Un botón: `Incrementar`
-   - Un contador visible que aumente en 1 cada vez que se pulse el botón.
-3. Mantener el código simple; no agregar paquetes externos salvo que sean estrictamente necesarios.
+1. En la app Flutter existente, agregar un segundo botón visible con el texto exacto `Reiniciar`.
+2. Al pulsar `Reiniciar`, el contador debe volver a `0`.
+3. Mantener intacto el botón `Incrementar` y su comportamiento actual.
+4. No agregar paquetes externos.
 
 ### Validaciones obligatorias
+- Actualizar o agregar tests para verificar:
+  - `Incrementar` aumenta el contador.
+  - `Reiniciar` devuelve el contador a `0` después de haberlo incrementado.
 - Ejecutar `flutter analyze`.
 - Ejecutar `flutter test`.
-- Si hay un dispositivo Android disponible, compilar e instalar la app y registrar el resultado; si no, indicarlo claramente.
 
 ### Prohibido
-- No añadir funciones extra.
-- No modificar el alcance definido en `MASTER.md`.
+- No agregar funciones adicionales.
+- No cambiar el alcance de `MASTER.md`.
 - No decidir la siguiente tarea.
 
 ### Al terminar
@@ -31,8 +30,7 @@ Actualizar `CLAUDE_REPORT.md` con:
 - resumen de implementación;
 - resultado de `flutter analyze`;
 - resultado de `flutter test`;
-- resultado de compilación/instalación si aplica;
 - problemas encontrados;
 - decisiones que requieran a ChatGPT o Javier.
 
-Después hacer commit y push al repositorio.
+Después hacer commit y `git push` al repositorio.
