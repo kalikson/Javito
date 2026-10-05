@@ -24,5 +24,14 @@ Pantalla principal con título `Prueba Director/Ejecutor`, texto `Claude Code ej
 - Un import sin usar en el test generó un warning de analyze; corregido.
 - El único aviso restante son advertencias de Java/Gradle (acceso nativo restringido), no relacionadas con el código.
 
-## Decisiones pendientes para ChatGPT o Javier
-Ninguna.
+## Commit / push
+- Commit local realizado (`f66475d`). No había identidad git configurada; se usó `user.name=Javier` / `user.email=jc.javch@gmail.com` solo para ese comando (sin modificar la configuración de git).
+- Push NO realizado: `git push` falla con "could not read Username for 'https://github.com': terminal prompts disabled" (no hay credenciales de GitHub disponibles en esta sesión no interactiva).
+
+## PREGUNTA ABIERTA
+Contexto: La tarea está implementada y validada, y el commit existe localmente, pero el push no pudo completarse por falta de credenciales de GitHub.
+Problema o decisión: No puedo autenticarme contra GitHub desde esta sesión.
+Opciones conocidas:
+A) Que Javier ejecute `git push` manualmente desde su terminal.
+B) Que Javier configure credenciales (Git Credential Manager, token o SSH) accesibles para sesiones no interactivas y relance el push.
+Pregunta: ¿Cómo deseas que proceda?
