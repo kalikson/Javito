@@ -33,6 +33,12 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _reset() {
+    setState(() {
+      _counter = 0;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,6 +59,8 @@ class _HomePageState extends State<HomePage> {
               onPressed: _increment,
               child: const Text('Incrementar'),
             ),
+            const SizedBox(height: 12),
+            ElevatedButton(onPressed: _reset, child: const Text('Reiniciar')),
           ],
         ),
       ),

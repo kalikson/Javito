@@ -15,4 +15,19 @@ void main() {
     expect(find.text('1'), findsOneWidget);
     expect(find.text('0'), findsNothing);
   });
+
+  testWidgets('Reiniciar devuelve el contador a 0', (tester) async {
+    await tester.pumpWidget(const MyApp());
+
+    await tester.tap(find.text('Incrementar'));
+    await tester.tap(find.text('Incrementar'));
+    await tester.pump();
+    expect(find.text('2'), findsOneWidget);
+
+    await tester.tap(find.text('Reiniciar'));
+    await tester.pump();
+
+    expect(find.text('0'), findsOneWidget);
+    expect(find.text('2'), findsNothing);
+  });
 }
