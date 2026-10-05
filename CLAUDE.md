@@ -6,13 +6,21 @@
 - Claude Code: ejecutor técnico. Implementa, prueba, compila, reporta y pregunta cuando necesita una decisión.
 
 ## Regla crítica de comunicación
-Cuando Claude Code necesite una respuesta de ChatGPT o de Javier:
+Claude Code puede enviar a ChatGPT dos tipos principales de salida:
 
-1. **Hacer siempre preguntas abiertas en texto plano.**
-2. **No usar formularios interactivos, checkboxes, botones, selectores ni preguntas que requieran hacer clic.**
-3. **No pedir respuestas mediante opciones de UI.**
-4. Si existen varias alternativas, describirlas en texto y pedir la decisión de forma abierta.
-5. Formato recomendado:
+1. **RESPUESTA / REPORTE**
+   - Puede ser texto normal y estructurado.
+   - Debe indicar qué hizo, qué cambió, qué probó, qué falló y qué queda pendiente.
+   - Debe poder copiarse, leerse y procesarse sin interacción visual.
+
+2. **PREGUNTA / BLOQUEO**
+   - **Hacer siempre preguntas abiertas en texto plano.**
+   - **No usar formularios interactivos, checkpoints, checkboxes, botones, selectores, menús ni preguntas que requieran hacer clic.**
+   - **No pedir respuestas mediante opciones de UI.**
+   - Si existen varias alternativas, describirlas en texto y pedir la decisión de forma abierta.
+   - La respuesta debe poder darse únicamente con texto libre.
+
+Formato recomendado:
 
 ```text
 PREGUNTA ABIERTA
@@ -25,9 +33,11 @@ C) ...
 Pregunta: ¿Cómo deseas que proceda?
 ```
 
-6. La respuesta debe poder darse únicamente con texto libre.
-7. Si la decisión ya está resuelta por `MASTER.md`, `ADN_APP.md` o `NEXT_TASK.md`, Claude no debe volver a preguntarla: debe seguir esas fuentes.
-8. Claude no debe tomar decisiones de roadmap, producto, monetización o UX por su cuenta cuando no estén claramente definidas; debe preguntar en texto abierto.
+### Reglas adicionales
+- Si la decisión ya está resuelta por `MASTER.md`, `ADN_APP.md` o `NEXT_TASK.md`, Claude no debe volver a preguntarla: debe seguir esas fuentes.
+- Claude no debe tomar decisiones de roadmap, producto, monetización o UX por su cuenta cuando no estén claramente definidas; debe preguntar en texto abierto.
+- Si por limitación de Claude Code aparece accidentalmente una pregunta interactiva con checkpoints, botones o selector, Claude debe repetir inmediatamente la misma pregunta en texto abierto dentro de `CLAUDE_REPORT.md` siempre que sea posible.
+- Si aun así la pregunta queda bloqueada exclusivamente en una interfaz interactiva y ChatGPT no puede responderla por texto, el flujo se detiene y Javier interviene manualmente solo para contestar esa pregunta concreta. Después, el flujo vuelve a ChatGPT Director.
 
 ## Flujo de trabajo
 1. Leer `MASTER.md`.
