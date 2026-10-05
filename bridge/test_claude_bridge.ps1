@@ -3,7 +3,21 @@
 $ErrorActionPreference = "Stop"
 
 $bridgeScript = Join-Path $PSScriptRoot "claude_bridge.ps1"
-$root = Join-Path ([IO.Path]::GetTempPath()) ("bridge-test-" + [guid]::NewGuid().ToString("N"))
+
+# --- Comprobacion de sintaxis de ambos scripts (antes de crear nada en %TEMP%) ---
+Write-Host "== Sintaxis =="
+$syntaxErrors = 0
+foreach ($f in @($bridgeScript, (Join-Path $PSScriptRoot "test_claude_bridge.ps1"))) {
+    $tokens = $null; $parseErrors = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($f, [ref]$tokens, [ref]$parseErrors)
+    $n = @($parseErrors).Count
+    Write-Host ("  {0}: {1} error(es) de sintaxis" -f (Split-Path $f -Leaf), $n)
+    foreach ($e in $parseErrors) { Write-Host "    linea $($e.Extent.StartLineNumber): $($e.Message)" }
+    $syntaxErrors += $n
+}
+if ($syntaxErrors -gt 0) { throw "Errores de sintaxis: $syntaxErrors" }
+
+$root =Join-Path ([IO.Path]::GetTempPath()) ("bridge-test-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $root | Out-Null
 
 $env:GIT_AUTHOR_NAME = "test"; $env:GIT_AUTHOR_EMAIL = "test@localhost"
@@ -207,6 +221,5 @@ finally {
     if ($root -like "*bridge-test-*") { Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
-if ($script:failures -gt 0) { Write-Host "$($script:failures) prueba(s) fallida(s)"; exit 1 }
+if ($script:failures -gt 0) { throw "$($script:failures) prueba(s) fallida(s)" }
 Write-Host "Todas las pruebas pasaron."
-exit 0
