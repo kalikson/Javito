@@ -70,6 +70,16 @@ Este documento define los puntos que deben revisarse e incorporarse en todos los
    - Verificar restauración de compras.
    - Verificar que no queden funciones Pro abiertas accidentalmente.
 
+12A. **Simulador DEV Gratis / Pro obligatorio durante desarrollo**
+   - Durante desarrollo debe existir una forma rápida de simular el estado `Gratis` y `Pro` para probar toda la experiencia sin realizar compras reales.
+   - Puede presentarse como switch, selector o control interno dentro de un menú de desarrollo.
+   - El simulador debe afectar el mismo sistema de permisos/entitlements que usa la interfaz, para comprobar correctamente bloqueos, límites, etiquetas, botones y contenido Pro.
+   - **No debe depender únicamente de ocultar un switch.** Ocultar un control no es una medida de seguridad suficiente.
+   - Debe existir únicamente en builds de desarrollo/debug o en un flavor interno específico. La compilación de producción/release para Google Play debe eliminar o deshabilitar por completo la capacidad de forzar Pro manualmente.
+   - En producción, la fuente de verdad para el estado Pro será Google Play Billing y los derechos reales del usuario, no una preferencia local modificable.
+   - Antes del AAB final debe existir una prueba explícita que confirme que el simulador DEV no está disponible ni puede activar Pro en el build de producción.
+   - El objetivo es poder desarrollar y probar Gratis y Pro juntos desde el principio sin crear una puerta trasera en la aplicación publicada.
+
 ## B. Reglas adicionales internas de calidad y funcionamiento
 
 13. **Estados completos de cada pantalla**
