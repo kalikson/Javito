@@ -29,11 +29,11 @@ function Assert-That {
     if ($Condition) { Write-Host "PASS  $Name" } else { Write-Host "FAIL  $Name"; $script:failures++ }
 }
 
-function Git {
+function Invoke-TestGit {
     # Git silencioso; devuelve stdout como texto. stderr se ignora (git informa por ahi).
     param([string]$Dir, [string[]]$GitArgs)
     $prev = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-    try { $out = & git -C $Dir @GitArgs 2>$null } finally { $ErrorActionPreference = $prev }
+    try { $out = & git.exe -C $Dir @GitArgs 2>$null } finally { $ErrorActionPreference = $prev }
     return (($out | ForEach-Object { "$_" }) -join "`n").Trim()
 }
 
@@ -64,18 +64,18 @@ function New-Fixture {
     $bare = Join-Path $root "$Name-remote.git"
     $seed = Join-Path $root "$Name-seed"
     $work = Join-Path $root "$Name-work"
-    & git init -q --bare -b main $bare 2>$null
-    & git init -q -b main $seed 2>$null
+    & git.exe init -q --bare -b main $bare 2>$null
+    & git.exe init -q -b main $seed 2>$null
     New-Item -ItemType Directory -Path (Join-Path $seed "bridge") | Out-Null
     Set-Content (Join-Path $seed "NEXT_TASK.md") "task v1"
     Set-Content (Join-Path $seed "README.md") "readme"
     Set-Content (Join-Path $seed ".gitignore") ".claude/"
     Copy-Item $bridgeScript (Join-Path $seed "bridge\claude_bridge.ps1")
-    Git $seed @("add", "-A") | Out-Null
-    Git $seed @("commit", "-q", "-m", "seed") | Out-Null
-    Git $seed @("remote", "add", "origin", $bare) | Out-Null
-    Git $seed @("push", "-q", "origin", "main") | Out-Null
-    & git clone -q $bare $work 2>$null
+    Invoke-TestGit $seed @("add", "-A") | Out-Null
+    Invoke-TestGit $seed @("commit", "-q", "-m", "seed") | Out-Null
+    Invoke-TestGit $seed @("remote", "add", "origin", $bare) | Out-Null
+    Invoke-TestGit $seed @("push", "-q", "origin", "main") | Out-Null
+    & git.exe clone -q $bare $work 2>$null
     return [pscustomobject]@{ Bare = $bare; Seed = $seed; Work = $work }
 }
 
@@ -104,18 +104,18 @@ function Get-LocalState {
 
 function Get-StatusFile {
     param($Fx)
-    Git $Fx.Bare @("show", "bridge-status:BRIDGE_STATUS.md")
+    Invoke-TestGit $Fx.Bare @("show", "bridge-status:BRIDGE_STATUS.md")
 }
 
 $realRepo = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$realHeadBefore = Git $realRepo @("rev-parse", "origin/main")
-$realStatusBefore = Git $realRepo @("status", "--porcelain")
+$realHeadBefore = Invoke-TestGit $realRepo @("rev-parse", "origin/main")
+$realStatusBefore = Invoke-TestGit $realRepo @("status", "--porcelain")
 
 try {
     # --- Escenario A/D: salida 7, no reintento, creacion y actualizacion de BRIDGE_STATUS.md ---
     Write-Host "== Escenario A: salida no cero =="
     $fx = New-Fixture "a"
-    $mainBefore = Git $fx.Bare @("rev-parse", "main")
+    $mainBefore = Invoke-TestGit $fx.Bare @("rev-parse", "main")
     $stub7 = New-Stub "stub7" 7
     Invoke-Bridge $fx $stub7 -RunCurrent
     $st = Get-LocalState $fx
@@ -130,36 +130,36 @@ try {
     Assert-That ($status -match "status: claude_exit_7") "3. BRIDGE_STATUS.md creado en bridge-status del remote de prueba"
     Assert-That ($status -match "exit_code: 7") "3b. contiene exit_code"
     Assert-That ($status -notmatch "harmless") "3c. no copia stdout de Claude"
-    Assert-That ((Git $fx.Bare @("ls-tree", "--name-only", "bridge-status")) -eq "BRIDGE_STATUS.md") "4. bridge-status contiene solo BRIDGE_STATUS.md"
-    Assert-That ((Git $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "4b. main del remote no cambio"
-    Assert-That ((Git $fx.Work @("status", "--porcelain")) -eq "") "4c. arbol de trabajo limpio, sin archivos ajenos"
+    Assert-That ((Invoke-TestGit $fx.Bare @("ls-tree", "--name-only", "bridge-status")) -eq "BRIDGE_STATUS.md") "4. bridge-status contiene solo BRIDGE_STATUS.md"
+    Assert-That ((Invoke-TestGit $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "4b. main del remote no cambio"
+    Assert-That ((Invoke-TestGit $fx.Work @("status", "--porcelain")) -eq "") "4c. arbol de trabajo limpio, sin archivos ajenos"
 
     # Nueva version de tarea: la rama de estado se actualiza (2 commits)
     Set-Content (Join-Path $fx.Seed "NEXT_TASK.md") "task v2"
-    Git $fx.Seed @("commit", "-q", "-am", "task v2") | Out-Null
-    Git $fx.Seed @("push", "-q", "origin", "main") | Out-Null
+    Invoke-TestGit $fx.Seed @("commit", "-q", "-am", "task v2") | Out-Null
+    Invoke-TestGit $fx.Seed @("push", "-q", "origin", "main") | Out-Null
     Invoke-Bridge $fx $stub7
     Assert-That ((Get-StubCount $stub7) -eq 2) "2b. nueva version de NEXT_TASK.md si se lanza"
-    Assert-That ((Git $fx.Bare @("rev-list", "--count", "bridge-status")) -eq "2") "3d. bridge-status se actualiza (2 commits)"
+    Assert-That ((Invoke-TestGit $fx.Bare @("rev-list", "--count", "bridge-status")) -eq "2") "3d. bridge-status se actualiza (2 commits)"
 
     # --- Escenario B: commit local parcial de Claude no llega al remote/rama de estado ---
     Write-Host "== Escenario B: commit local parcial =="
     $fx = New-Fixture "b"
-    $mainBefore = Git $fx.Bare @("rev-parse", "main")
+    $mainBefore = Invoke-TestGit $fx.Bare @("rev-parse", "main")
     $stubC = New-Stub "stubC" 7 -LocalCommit
     Invoke-Bridge $fx $stubC -RunCurrent
-    $partial = Git $fx.Work @("rev-parse", "HEAD")
+    $partial = Invoke-TestGit $fx.Work @("rev-parse", "HEAD")
     Assert-That ($partial -ne $mainBefore) "6a. el commit parcial existe localmente en main"
-    $inRemote = Git $fx.Bare @("cat-file", "-t", $partial)
+    $inRemote = Invoke-TestGit $fx.Bare @("cat-file", "-t", $partial)
     Assert-That ($inRemote -ne "commit") "6. commit parcial NO esta en el remote (ni en bridge-status)"
-    Assert-That ((Git $fx.Bare @("ls-tree", "--name-only", "bridge-status")) -eq "BRIDGE_STATUS.md") "6b. bridge-status solo tiene el archivo de estado"
-    Assert-That ((Git $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "6c. main del remote intacto"
+    Assert-That ((Invoke-TestGit $fx.Bare @("ls-tree", "--name-only", "bridge-status")) -eq "BRIDGE_STATUS.md") "6b. bridge-status solo tiene el archivo de estado"
+    Assert-That ((Invoke-TestGit $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "6c. main del remote intacto"
     Assert-That ((Get-LocalState $fx).status -eq "claude_exit_7") "6d. estado local claude_exit_7"
 
     # --- Escenario C: arbol sucio ---
     Write-Host "== Escenario C: arbol sucio =="
     $fx = New-Fixture "c"
-    $mainBefore = Git $fx.Bare @("rev-parse", "main")
+    $mainBefore = Invoke-TestGit $fx.Bare @("rev-parse", "main")
     $stubOk = New-Stub "stubOk" 0
     Set-Content (Join-Path $fx.Work "README.md") "cambio local SECRETO-123"
     Set-Content (Join-Path $fx.Work "nuevo.txt") "archivo sin trackear"
@@ -173,20 +173,20 @@ try {
     Assert-That (($status -match "README.md") -and ($status -match "nuevo.txt")) "5f. lista rutas sucias"
     Assert-That ($status -notmatch "SECRETO-123") "5g. sin contenido de archivos"
     Invoke-Bridge $fx $stubOk
-    Assert-That ((Git $fx.Bare @("rev-list", "--count", "bridge-status")) -eq "1") "5h. no hay bucle: mismo estado no se republica"
-    Assert-That ((Git $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "5i. main del remote intacto"
+    Assert-That ((Invoke-TestGit $fx.Bare @("rev-list", "--count", "bridge-status")) -eq "1") "5h. no hay bucle: mismo estado no se republica"
+    Assert-That ((Invoke-TestGit $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "5i. main del remote intacto"
 
     # --- Escenario D: pull_failed (main local y origin/main divergidos) ---
     Write-Host "== Escenario D: pull_failed =="
     $fx = New-Fixture "d"
-    $mainBefore = Git $fx.Bare @("rev-parse", "main")
+    $mainBefore = Invoke-TestGit $fx.Bare @("rev-parse", "main")
     Set-Content (Join-Path $fx.Work "local.txt") "commit local divergente"
-    Git $fx.Work @("add", "local.txt") | Out-Null
-    Git $fx.Work @("commit", "-q", "-m", "local divergente") | Out-Null
+    Invoke-TestGit $fx.Work @("add", "local.txt") | Out-Null
+    Invoke-TestGit $fx.Work @("commit", "-q", "-m", "local divergente") | Out-Null
     Set-Content (Join-Path $fx.Seed "NEXT_TASK.md") "task v2 remota"
-    Git $fx.Seed @("commit", "-q", "-am", "task v2 remota") | Out-Null
-    Git $fx.Seed @("push", "-q", "origin", "main") | Out-Null
-    $mainBefore = Git $fx.Bare @("rev-parse", "main")
+    Invoke-TestGit $fx.Seed @("commit", "-q", "-am", "task v2 remota") | Out-Null
+    Invoke-TestGit $fx.Seed @("push", "-q", "origin", "main") | Out-Null
+    $mainBefore = Invoke-TestGit $fx.Bare @("rev-parse", "main")
     $stubD = New-Stub "stubD" 0
     Invoke-Bridge $fx $stubD -RunCurrent
     Assert-That ((Get-LocalState $fx).status -eq "pull_failed") "8a. estado local pull_failed"
@@ -195,13 +195,13 @@ try {
     Assert-That ($status -match "status: pull_failed") "8c. publicado status: pull_failed en bridge-status"
     Invoke-Bridge $fx $stubD
     Assert-That ((Get-StubCount $stubD) -eq 0) "8d. misma version no se reintenta"
-    Assert-That ((Git $fx.Bare @("rev-list", "--count", "bridge-status")) -eq "1") "8e. no se republica el estado"
-    Assert-That ((Git $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "8f. main del remote intacto"
+    Assert-That ((Invoke-TestGit $fx.Bare @("rev-list", "--count", "bridge-status")) -eq "1") "8e. no se republica el estado"
+    Assert-That ((Invoke-TestGit $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "8f. main del remote intacto"
 
     # --- Escenario E: launch_exception (exe existente pero no ejecutable) ---
     Write-Host "== Escenario E: launch_exception =="
     $fx = New-Fixture "e"
-    $mainBefore = Git $fx.Bare @("rev-parse", "main")
+    $mainBefore = Invoke-TestGit $fx.Bare @("rev-parse", "main")
     $fakeExe = Join-Path $root "fake_claude.exe"
     Set-Content -Path $fakeExe -Value "esto no es un ejecutable valido" -Encoding ASCII
     Invoke-Bridge $fx $fakeExe -RunCurrent
@@ -209,13 +209,13 @@ try {
     $status = Get-StatusFile $fx
     Assert-That ($status -match "status: launch_exception") "9b. publicado status: launch_exception en bridge-status"
     Invoke-Bridge $fx $fakeExe
-    Assert-That ((Git $fx.Bare @("rev-list", "--count", "bridge-status")) -eq "1") "9c. misma version no se reintenta ni republica"
-    Assert-That ((Git $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "9d. main del remote intacto"
+    Assert-That ((Invoke-TestGit $fx.Bare @("rev-list", "--count", "bridge-status")) -eq "1") "9c. misma version no se reintenta ni republica"
+    Assert-That ((Invoke-TestGit $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "9d. main del remote intacto"
 
     # --- 7: repositorio real ---
     Write-Host "== Repositorio real =="
-    Assert-That ((Git $realRepo @("rev-parse", "origin/main")) -eq $realHeadBefore) "7a. origin/main real sin cambios por las pruebas"
-    Assert-That ((Git $realRepo @("status", "--porcelain")) -eq $realStatusBefore) "7b. estado del repo real igual que antes de las pruebas"
+    Assert-That ((Invoke-TestGit $realRepo @("rev-parse", "origin/main")) -eq $realHeadBefore) "7a. origin/main real sin cambios por las pruebas"
+    Assert-That ((Invoke-TestGit $realRepo @("status", "--porcelain")) -eq $realStatusBefore) "7b. estado del repo real igual que antes de las pruebas"
 }
 finally {
     if ($root -like "*bridge-test-*") { Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue }
