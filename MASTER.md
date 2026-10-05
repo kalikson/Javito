@@ -22,6 +22,7 @@ Crear una aplicación Flutter mínima llamada `director_ejecutor_test` que permi
 
 ## Estado
 - Fase actual: validación del protocolo Director/Ejecutor.
-- Última tarea aprobada: Tarea 002 — Validar activación automática del puente.
+- Última tarea aprobada: Tarea 003 — Validar bloqueo mediante pregunta abierta sin checkpoint.
 - Resultado Tarea 002: APROBADO. El cambio de `NEXT_TASK.md` fue detectado por el puente, Claude Code ejecutó la tarea, validó la app y publicó su commit/reporte en GitHub.
-- Siguiente validación: comprobar que un bloqueo de Claude se devuelve como PREGUNTA ABIERTA EN TEXTO mediante `CLAUDE_REPORT.md`, sin checkpoint, botones, selectores ni formularios interactivos.
+- Resultado Tarea 003: APROBADO. Claude Code devolvió el bloqueo mediante `CLAUDE_REPORT.md` como PREGUNTA ABIERTA EN TEXTO, modificó únicamente el reporte y no usó checkpoint ni controles interactivos.
+- Decisión del Director para la siguiente validación: priorizar el manejo de una ejecución de Claude que termina con código de salida distinto de 0.
