@@ -67,9 +67,20 @@ function New-Fixture {
 
 function Invoke-Bridge {
     param($Fx, [string]$Stub, [switch]$RunCurrent)
-    $argList = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", (Join-Path $Fx.Work "bridge\claude_bridge.ps1"), "-Once", "-ClaudeExe", $Stub)
-    if ($RunCurrent) { $argList += "-RunCurrent" }
-    & powershell.exe @argList *> $null
+    # Ejecuta la COPIA del puente del fixture en el proceso actual (sin PowerShell hijo).
+    $bridgeCopy = Join-Path $Fx.Work "bridge\claude_bridge.ps1"
+    $bridgeArgs = @{ Once = $true; ClaudeExe = $Stub }
+    if ($RunCurrent) { $bridgeArgs["RunCurrent"] = $true }
+    $origin = Get-Location
+    try {
+        & $bridgeCopy @bridgeArgs *> $null
+    }
+    catch {
+        Write-Host "  (el puente termino con excepcion: $($_.Exception.Message))"
+    }
+    finally {
+        Set-Location -LiteralPath $origin.Path
+    }
 }
 
 function Get-LocalState {
@@ -150,6 +161,42 @@ try {
     Invoke-Bridge $fx $stubOk
     Assert-That ((Git $fx.Bare @("rev-list", "--count", "bridge-status")) -eq "1") "5h. no hay bucle: mismo estado no se republica"
     Assert-That ((Git $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "5i. main del remote intacto"
+
+    # --- Escenario D: pull_failed (main local y origin/main divergidos) ---
+    Write-Host "== Escenario D: pull_failed =="
+    $fx = New-Fixture "d"
+    $mainBefore = Git $fx.Bare @("rev-parse", "main")
+    Set-Content (Join-Path $fx.Work "local.txt") "commit local divergente"
+    Git $fx.Work @("add", "local.txt") | Out-Null
+    Git $fx.Work @("commit", "-q", "-m", "local divergente") | Out-Null
+    Set-Content (Join-Path $fx.Seed "NEXT_TASK.md") "task v2 remota"
+    Git $fx.Seed @("commit", "-q", "-am", "task v2 remota") | Out-Null
+    Git $fx.Seed @("push", "-q", "origin", "main") | Out-Null
+    $mainBefore = Git $fx.Bare @("rev-parse", "main")
+    $stubD = New-Stub "stubD" 0
+    Invoke-Bridge $fx $stubD -RunCurrent
+    Assert-That ((Get-LocalState $fx).status -eq "pull_failed") "8a. estado local pull_failed"
+    Assert-That ((Get-StubCount $stubD) -eq 0) "8b. Claude no se ejecuto"
+    $status = Get-StatusFile $fx
+    Assert-That ($status -match "status: pull_failed") "8c. publicado status: pull_failed en bridge-status"
+    Invoke-Bridge $fx $stubD
+    Assert-That ((Get-StubCount $stubD) -eq 0) "8d. misma version no se reintenta"
+    Assert-That ((Git $fx.Bare @("rev-list", "--count", "bridge-status")) -eq "1") "8e. no se republica el estado"
+    Assert-That ((Git $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "8f. main del remote intacto"
+
+    # --- Escenario E: launch_exception (exe existente pero no ejecutable) ---
+    Write-Host "== Escenario E: launch_exception =="
+    $fx = New-Fixture "e"
+    $mainBefore = Git $fx.Bare @("rev-parse", "main")
+    $fakeExe = Join-Path $root "fake_claude.exe"
+    Set-Content -Path $fakeExe -Value "esto no es un ejecutable valido" -Encoding ASCII
+    Invoke-Bridge $fx $fakeExe -RunCurrent
+    Assert-That ((Get-LocalState $fx).status -eq "launch_exception") "9a. estado local launch_exception"
+    $status = Get-StatusFile $fx
+    Assert-That ($status -match "status: launch_exception") "9b. publicado status: launch_exception en bridge-status"
+    Invoke-Bridge $fx $fakeExe
+    Assert-That ((Git $fx.Bare @("rev-list", "--count", "bridge-status")) -eq "1") "9c. misma version no se reintenta ni republica"
+    Assert-That ((Git $fx.Bare @("rev-parse", "main")) -eq $mainBefore) "9d. main del remote intacto"
 
     # --- 7: repositorio real ---
     Write-Host "== Repositorio real =="
