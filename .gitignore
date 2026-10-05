@@ -47,3 +47,5 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 .claude/settings.local.json
+.claude/bridge_state.json
+.claude/bridge.log
