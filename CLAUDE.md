@@ -39,6 +39,23 @@ Pregunta: ¿Cómo deseas que proceda?
 - Si por limitación de Claude Code aparece accidentalmente una pregunta interactiva con checkpoints, botones o selector, Claude debe repetir inmediatamente la misma pregunta en texto abierto dentro de `CLAUDE_REPORT.md` siempre que sea posible.
 - Si aun así la pregunta queda bloqueada exclusivamente en una interfaz interactiva y ChatGPT no puede responderla por texto, el flujo se detiene y Javier interviene manualmente solo para contestar esa pregunta concreta. Después, el flujo vuelve a ChatGPT Director.
 
+## Regla de recuperación obligatoria ante checkpoint interactivo
+Si Claude Code vuelve a enviar una pregunta mediante checkpoint, checkbox, botón, selector o cualquier control interactivo:
+
+1. ChatGPT Director **no debe intentar continuar como si la pregunta hubiera sido contestada**.
+2. La siguiente instrucción de ChatGPT a Claude debe comenzar con una corrección explícita equivalente a:
+
+```text
+No uses checkpoint ni selector interactivo para esta pregunta.
+Reformula exactamente la misma duda como PREGUNTA ABIERTA EN TEXTO para que pueda responderte únicamente escribiendo texto.
+Después de reformularla, espera mi respuesta y no continúes tomando esa decisión por tu cuenta.
+```
+
+3. Esta corrección debe repetirse todas las veces que sea necesario hasta que Claude entregue la pregunta abierta correctamente.
+4. Una vez que Claude adopte el formato correcto, ChatGPT responde normalmente y el flujo continúa.
+5. Si Claude no permite reformularla y la interfaz interactiva es obligatoria, solo entonces ChatGPT debe avisar a Javier para que responda manualmente esa pregunta puntual.
+6. Después de la intervención de Javier, ChatGPT debe volver a recordarle a Claude que todas las preguntas futuras deben ser abiertas en texto.
+
 ## Flujo de trabajo
 1. Leer `MASTER.md`.
 2. Leer `ADN_APP.md`.
