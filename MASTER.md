@@ -21,8 +21,10 @@ Validar un flujo de trabajo donde ChatGPT dirige el proyecto y Claude Code actú
 Crear una aplicación Flutter mínima llamada `director_ejecutor_test` que permita comprobar el ciclo completo de trabajo.
 
 ## Estado
-- Fase actual: validación del protocolo Director/Ejecutor.
-- Última tarea aprobada: Tarea 003 — Validar bloqueo mediante pregunta abierta sin checkpoint.
+- Fase actual: validación del protocolo Director/Ejecutor y robustez del puente.
 - Resultado Tarea 002: APROBADO. El cambio de `NEXT_TASK.md` fue detectado por el puente, Claude Code ejecutó la tarea, validó la app y publicó su commit/reporte en GitHub.
 - Resultado Tarea 003: APROBADO. Claude Code devolvió el bloqueo mediante `CLAUDE_REPORT.md` como PREGUNTA ABIERTA EN TEXTO, modificó únicamente el reporte y no usó checkpoint ni controles interactivos.
-- Decisión del Director para la siguiente validación: priorizar el manejo de una ejecución de Claude que termina con código de salida distinto de 0.
+- Resultado Tarea 004: APROBADO. La auditoría confirmó que una salida no cero de Claude queda marcada localmente como procesada, no se reintenta y puede ser invisible para ChatGPT Director si Claude no alcanza a publicar reporte.
+- Decisión del Director: no reintentar automáticamente una ejecución de Claude que termine mal; preservar cualquier trabajo parcial; detener esa tarea y publicar una señal visible en GitHub sin empujar commits parciales del árbol principal.
+- Diseño elegido para validar: canal de estado independiente del `main` mediante una rama dedicada `bridge-status`, publicada desde un entorno git aislado del árbol de trabajo principal. El estado no debe incluir el stdout/stderr completo de Claude ni secretos.
+- Siguiente paso: Tarea 005 — implementar y probar de forma segura este manejo de fallos en el puente, incluyendo salida no cero y bloqueo por árbol sucio, sin provocar un fallo real de Claude sobre el repositorio de trabajo.
