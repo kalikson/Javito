@@ -1,87 +1,70 @@
 # NEXT TASK
 
-## Tarea 005-E — Cerrar validación del puente usando el comando Bash autorizado
+## Tarea 005-F — Instalar hook mínimo de permiso para el harness
 
 ### Estado del Director
-**CORREGIR / DESBLOQUEO TÉCNICO.** La Tarea 005 sigue sin aprobarse únicamente porque el harness no ha podido ejecutarse. No hace falta intervención de Javier.
+**CORREGIR / DESBLOQUEO TÉCNICO.** La Tarea 005-E confirmó que ni la regla `permissions.allow` de PowerShell ni la regla exacta de Bash resolvieron la petición antes de `--permission-prompts none`.
 
-El permiso temporal anterior de PowerShell no coincidió con el parser de permisos. El Director verificó la sintaxis actual de Claude Code y reemplazó `.claude/settings.json` por una única regla `Bash(...)` que autoriza exactamente un comando.
+La documentación actual de Claude Code establece que, en sesiones no interactivas, los hooks `PermissionRequest` sí se ejecutan antes de la denegación final y pueden responder `allow`. Vamos a usar ese mecanismo, limitado exclusivamente al harness de esta prueba.
 
 ### Objetivo
-Ejecutar realmente el harness completo de la Tarea 005, corregir solo defectos demostrados y dejar evidencia verificable de todos los escenarios.
+Preparar un hook versionado y auditable que autorice **solo** la ejecución exacta del harness de puente y ninguna otra petición de permiso. No ejecutar todavía el harness en esta tarea; el hook se validará en una sesión nueva mediante la siguiente versión de `NEXT_TASK.md`.
 
-### Comando obligatorio
-Usa **la herramienta Bash de Claude Code**, no la herramienta PowerShell, y ejecuta exactamente esta cadena desde la raíz del repositorio:
+### Implementación exacta
+1. Leer `MASTER.md`, `ADN_APP.md`, `CLAUDE.md`, esta tarea, `.claude/settings.json` y `CLAUDE_REPORT.md`.
+2. Crear `.claude/hooks/approve_bridge_harness.ps1`.
+3. El hook debe leer el JSON de entrada desde stdin y únicamente devolver una decisión `allow` cuando se cumplan **todas** estas condiciones:
+   - `hook_event_name` es `PermissionRequest`;
+   - `tool_name` es `Bash`;
+   - `tool_input.command`, después de `Trim()`, es exactamente:
+     `powershell.exe -NoProfile -ExecutionPolicy Bypass -File bridge/test_claude_bridge.ps1`
+   - `cwd`, normalizado con `GetFullPath`, coincide con la raíz real del repositorio Javito calculada desde la propia ubicación del hook (`.claude/hooks` -> dos niveles arriba).
+4. Cuando las condiciones coincidan, escribir en stdout JSON válido con esta semántica:
+   - `hookSpecificOutput.hookEventName = "PermissionRequest"`
+   - `hookSpecificOutput.decision.behavior = "allow"`
+5. Para cualquier otra herramienta, comando o directorio:
+   - no autorizar;
+   - no emitir una decisión `allow`;
+   - terminar normalmente para que el flujo estándar de permisos decida y, con `--permission-prompts none`, lo deniegue.
+6. El hook no debe modificar archivos, ejecutar el harness, ejecutar git, cambiar permisos ni persistir una autorización más amplia.
+7. Actualizar `.claude/settings.json` para:
+   - retirar la regla `permissions.allow` temporal de Bash que ya demostró no resolver el caso;
+   - configurar `hooks.PermissionRequest` con `matcher: "Bash"`;
+   - ejecutar como hook exactamente:
+     `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/approve_bridge_harness.ps1`
+8. No añadir `PowerShell(*)`, `Bash(*)`, `bypassPermissions`, `auto` ni otra autorización amplia.
 
-```text
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File bridge/test_claude_bridge.ps1
-```
+### Validación de esta tarea
+Esta tarea es únicamente de instalación del mecanismo; **no ejecutes el harness todavía**, porque la sesión actual ya quedó marcada sin superficie de aprobación y el nuevo hook debe cargarse desde el inicio de una sesión nueva.
 
-No añadas `2>&1`, `&&`, `;`, tuberías, prefijos, sufijos ni argumentos adicionales a esa invocación. La regla temporal está limitada deliberadamente a ese comando exacto.
+Verifica por inspección:
+- JSON válido y estructura correcta de `.claude/settings.json`;
+- el hook contiene comparación exacta del comando;
+- el hook comprueba también la raíz del repositorio;
+- no hay una ruta que autorice otras órdenes Bash;
+- no quedan reglas amplias de permisos.
 
-### Procedimiento
-1. Leer `MASTER.md`, `ADN_APP.md`, `CLAUDE.md`, esta tarea, `bridge/claude_bridge.ps1`, `bridge/test_claude_bridge.ps1`, `CLAUDE_REPORT.md` y `.claude/settings.json`.
-2. Ejecutar el comando obligatorio anterior mediante Bash.
-3. El harness ya incluye comprobación de sintaxis; registrar su resultado real.
-4. Si el harness falla por un defecto demostrado:
-   - identificar si el fallo está en `bridge/test_claude_bridge.ps1` o en `bridge/claude_bridge.ps1`;
-   - aplicar la corrección mínima;
-   - volver a ejecutar **exactamente el mismo comando Bash autorizado**;
-   - repetir hasta que todas las pruebas pasen o aparezca un bloqueo técnico nuevo y concreto.
-5. No usar Claude real para simular fallos. Los stubs y remotes deben seguir siendo temporales/locales.
-6. No ejecutar el puente real del repositorio durante las simulaciones.
-
-### Debe quedar probado realmente
-- cero errores de sintaxis en `bridge/claude_bridge.ps1`;
-- cero errores de sintaxis en `bridge/test_claude_bridge.ps1`;
-- `claude_exit_7` y `exit_code = 7`;
-- la misma versión de `NEXT_TASK.md` no se relanza;
-- una versión nueva sí se procesa;
-- `BRIDGE_STATUS.md` se crea/actualiza únicamente en `bridge-status` del remote bare temporal;
-- stdout/stderr del stub no se copia a `BRIDGE_STATUS.md`;
-- `main` del remote temporal queda intacto por la publicación del estado;
-- árbol sucio produce `blocked_dirty_tree`, no ejecuta Claude y conserva los cambios;
-- un commit local parcial no se propaga al remote ni a `bridge-status`;
-- `pull_failed` se registra/publica, no ejecuta Claude y no reintenta la misma versión;
-- `launch_exception` se registra/publica sin usar Claude real y no reintenta la misma versión;
-- el repositorio real conserva su estado salvo los cambios intencionales de esta tarea.
-
-### Permiso temporal
-**No elimines ni modifiques `.claude/settings.json` en esta tarea.** Si todas las pruebas pasan, el Director lo retirará directamente después de auditar tu commit. Esto evita necesitar un segundo permiso de shell.
-
-### Validaciones obligatorias
-- El harness completo debe finalizar satisfactoriamente con todas las pruebas PASS.
-- Revisar `git diff` antes del commit.
-- No modificar `MASTER.md`, `ADN_APP.md`, `CLAUDE.md`, `NEXT_TASK.md`, `lib/` ni `test/`.
-- `bridge/claude_bridge.ps1` solo puede cambiar si una prueba demuestra un defecto real.
-- No reiniciar, matar ni duplicar el puente real.
-- No usar `git reset`, `git clean` ni `git stash`.
-- Confirmar que ninguna prueba hizo push a GitHub real.
+No uses un comando PowerShell para validar la sintaxis del hook en esta sesión si eso requiere aprobación. No inventes resultados dinámicos.
 
 ### CLAUDE_REPORT.md obligatorio
 Reportar:
 - estado `COMPLETADO` o `BLOQUEADO`;
-- tarea `005-E`;
-- comando exacto ejecutado y confirmación de que se usó la herramienta Bash;
+- tarea `005-F`;
 - archivos modificados;
-- resultados reales de sintaxis;
-- resultados individuales de todos los escenarios anteriores;
-- cualquier fallo encontrado y la corrección aplicada;
-- número de ejecuciones del harness hasta llegar al resultado final;
-- confirmación de que no se usó Claude real para simular fallos;
-- confirmación de que no hubo push de prueba a GitHub real;
-- confirmación de que el repositorio real quedó preservado;
-- confirmación de que el puente real no fue reiniciado ni duplicado;
-- riesgos pendientes reales;
-- decisiones pendientes para ChatGPT Director.
-
-### Si el comando Bash exacto también es bloqueado
-No pruebes comandos alternativos y no pidas intervención de Javier. Registra literalmente el bloqueo y deja estado `BLOQUEADO`. El Director decidirá el siguiente mecanismo.
+- contenido lógico exacto del filtro del hook;
+- estructura final de `.claude/settings.json`;
+- confirmación de que el harness NO se ejecutó en esta tarea;
+- confirmación de que no se añadió permiso amplio;
+- cualquier riesgo o duda real para el Director.
 
 ### Prohibido
+- No ejecutar el harness en esta tarea.
+- No cambiar `bridge/claude_bridge.ps1` ni `bridge/test_claude_bridge.ps1`.
+- No modificar `MASTER.md`, `ADN_APP.md`, `CLAUDE.md`, `NEXT_TASK.md`, `lib/` ni `test/`.
+- No usar permisos globales o bypass.
 - No pedir intervención de Javier.
 - No usar checkpoint, botones, selectores ni formularios interactivos.
-- No decidir ni escribir la Tarea 006.
+- No decidir ni escribir la siguiente tarea.
 
 ### Al terminar
 Actualizar `CLAUDE_REPORT.md`, hacer commit y `git push` a `main`. No modificar `NEXT_TASK.md`.
