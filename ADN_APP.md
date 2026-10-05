@@ -72,13 +72,24 @@ Este documento define los puntos que deben revisarse e incorporarse en todos los
 
 12A. **Simulador DEV Gratis / Pro obligatorio durante desarrollo**
    - Durante desarrollo debe existir una forma rápida de simular el estado `Gratis` y `Pro` para probar toda la experiencia sin realizar compras reales.
-   - Puede presentarse como switch, selector o control interno dentro de un menú de desarrollo.
-   - El simulador debe afectar el mismo sistema de permisos/entitlements que usa la interfaz, para comprobar correctamente bloqueos, límites, etiquetas, botones y contenido Pro.
-   - **No debe depender únicamente de ocultar un switch.** Ocultar un control no es una medida de seguridad suficiente.
-   - Debe existir únicamente en builds de desarrollo/debug o en un flavor interno específico. La compilación de producción/release para Google Play debe eliminar o deshabilitar por completo la capacidad de forzar Pro manualmente.
-   - En producción, la fuente de verdad para el estado Pro será Google Play Billing y los derechos reales del usuario, no una preferencia local modificable.
-   - Antes del AAB final debe existir una prueba explícita que confirme que el simulador DEV no está disponible ni puede activar Pro en el build de producción.
-   - El objetivo es poder desarrollar y probar Gratis y Pro juntos desde el principio sin crear una puerta trasera en la aplicación publicada.
+   - Puede presentarse como switch, selector o control interno dentro de un menú de desarrollo, pero **el switch es solamente la interfaz del simulador, nunca la seguridad real de Pro**.
+   - La arquitectura debe separar claramente dos fuentes de derechos:
+     - `DevEntitlementProvider` o equivalente: solo para debug/flavor interno.
+     - `PlayEntitlementProvider` o equivalente: única fuente válida en producción.
+   - La lógica de negocio no debe depender de un booleano local tipo `isPro = true`, una preferencia editable, SharedPreferences, un archivo local o un valor fácilmente parcheable.
+   - El código que permite forzar Gratis/Pro debe compilarse únicamente en builds de desarrollo o flavor interno. Idealmente, las clases, rutas, controles y dependencias del simulador DEV **no deben formar parte del AAB release**, no solo quedar ocultas visualmente.
+   - En release, el estado Pro debe derivarse de los derechos reales obtenidos por Google Play Billing y de la validación que corresponda al proyecto.
+   - Si el valor comercial o el riesgo lo justifican, considerar validación adicional del lado servidor para dificultar alteraciones locales; nunca asumir que una app instalada en el dispositivo es imposible de modificar.
+   - El desbloqueo de funciones Pro debe pasar por una capa central de `Entitlements/AccessControl`, de modo que ninguna pantalla pueda desbloquearse cambiando una sola variable aislada.
+   - El simulador DEV debe afectar esa misma capa de permisos para probar exactamente los mismos caminos de UI, límites y funciones que usará producción.
+   - Antes del AAB final debe hacerse una auditoría específica que confirme:
+     - no existe menú DEV accesible;
+     - no existe ruta oculta para forzar Pro;
+     - no existe preferencia local capaz de activar Pro;
+     - el provider DEV no forma parte del release cuando la arquitectura lo permita;
+     - los derechos Pro reales provienen de Google Play/validación autorizada;
+     - modificar un único valor local no basta para convertir Gratis en Pro.
+   - Objetivo: disfrutar durante desarrollo de un cambio Gratis/Pro instantáneo sin dejar una puerta trasera trivial en producción.
 
 ## B. Reglas adicionales internas de calidad y funcionamiento
 
@@ -200,7 +211,7 @@ Este documento define los puntos que deben revisarse e incorporarse en todos los
 
 ## D. Uso en futuros proyectos
 
-- Cada `MASTER.md` debe incluir una sección `ADN DE LA APP` o enlazar/copiara este checklist.
+- Cada `MASTER.md` debe incluir una sección `ADN DE LA APP` o enlazar/copiar este checklist.
 - ChatGPT es responsable de recordar estos puntos aunque Javier no los mencione durante el proyecto.
 - Claude Code implementa lo que ChatGPT indique; no decide eliminar, cambiar o ignorar estos requisitos por iniciativa propia.
 - Si un requisito no aplica a una app concreta, debe marcarse explícitamente como `NO APLICA` junto con la razón.
