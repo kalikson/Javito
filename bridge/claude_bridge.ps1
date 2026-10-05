@@ -78,9 +78,22 @@ function Invoke-CurrentTask {
     }
 
     Write-BridgeLog "Nueva tarea detectada. Actualizando repositorio..."
-    & git pull --ff-only origin main 2>&1 | ForEach-Object { Write-BridgeLog "[git pull] $_" }
-    if ($LASTEXITCODE -ne 0) {
-        Write-BridgeLog "git pull fallo. Se reintentara en el siguiente ciclo."
+
+    # Git escribe mensajes informativos de fetch/pull por stderr aun cuando el
+    # comando termina correctamente. En Windows PowerShell, con
+    # ErrorActionPreference=Stop, redirigir ese stderr directamente dentro de
+    # PowerShell puede convertir mensajes como 'From https://github.com/...'
+    # en una excepcion. Hacemos la redireccion dentro de cmd.exe para que el
+    # puente reciba una sola corriente de texto y use el codigo de salida real.
+    $pullOutput = & cmd.exe /d /c "git pull --ff-only origin main 2>&1"
+    $pullExit = $LASTEXITCODE
+
+    foreach ($line in $pullOutput) {
+        Write-BridgeLog "[git pull] $line"
+    }
+
+    if ($pullExit -ne 0) {
+        Write-BridgeLog "git pull fallo con codigo $pullExit. Se reintentara en el siguiente ciclo."
         return
     }
 
