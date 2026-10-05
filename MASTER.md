@@ -21,5 +21,7 @@ Validar un flujo de trabajo donde ChatGPT dirige el proyecto y Claude Code actú
 Crear una aplicación Flutter mínima llamada `director_ejecutor_test` que permita comprobar el ciclo completo de trabajo.
 
 ## Estado
-- Fase actual: configuración inicial.
-- Última tarea aprobada: ninguna todavía.
+- Fase actual: validación del protocolo Director/Ejecutor.
+- Última tarea aprobada: Tarea 002 — Validar activación automática del puente.
+- Resultado Tarea 002: APROBADO. El cambio de `NEXT_TASK.md` fue detectado por el puente, Claude Code ejecutó la tarea, validó la app y publicó su commit/reporte en GitHub.
+- Siguiente validación: comprobar que un bloqueo de Claude se devuelve como PREGUNTA ABIERTA EN TEXTO mediante `CLAUDE_REPORT.md`, sin checkpoint, botones, selectores ni formularios interactivos.
