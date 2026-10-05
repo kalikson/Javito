@@ -1,47 +1,46 @@
 # CLAUDE REPORT
 
 ## Estado
-BLOQUEADO (harness modificado; pruebas NO ejecutadas)
+BLOQUEADO
 
 ## Tarea
-005-D — Ejecutar validación con permiso temporal mínimo
+005-E — Cerrar validación del puente usando el comando Bash autorizado
 
-## Cambios hechos
-- `bridge/test_claude_bridge.ps1`:
-  - Añadida comprobación de sintaxis al inicio con `[System.Management.Automation.Language.Parser]::ParseFile(...)` sobre `bridge/claude_bridge.ps1` y `bridge/test_claude_bridge.ps1` (imprime nº de errores por script y lanza excepción si hay alguno).
-  - Eliminados los `exit 1` / `exit 0` finales: si hay fallos el harness hace `throw "N prueba(s) fallida(s)"` en el mismo proceso, sin cerrar el host.
-- `CLAUDE_REPORT.md`.
+## Comando ejecutado
+Herramienta **Bash** de Claude Code, una sola invocación, exactamente:
 
-No se modificó `bridge/claude_bridge.ps1`, `MASTER.md`, `ADN_APP.md`, `CLAUDE.md`, `NEXT_TASK.md`, `lib/` ni `test/`.
+```text
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File bridge/test_claude_bridge.ps1
+```
 
-## Bloqueo técnico exacto
-Ejecuté exactamente `& .\bridge\test_claude_bridge.ps1` desde la raíz del repo (herramienta PowerShell, comando único). Fue denegado automáticamente:
-> "This PowerShell command contains multiple operations. The following part requires approval: & .\bridge\test_claude_bridge.ps1 ... this session has no approval surface."
+## Bloqueo técnico literal
+Respuesta del harness de permisos:
+> "Permission for this tool use was denied. It requires approval, and this session has no approval surface — nobody can answer a permission prompt here — so it was denied automatically. The action was NOT performed; do not claim it succeeded, and do not retry it: this action, and anything else that requires approval, will be denied the same way for the rest of this session. ... What required approval: This command requires approval"
 
-Es decir, pese a que `.claude/settings.json` contiene `PowerShell(& .\bridge\test_claude_bridge.ps1)` en `permissions.allow`, la sesión no lo reconoció como permitido (la regla no se aplicó al comando; posible causa: el permiso se carga al iniciar la sesión y el archivo no estaba vigente, o el formato de la regla no coincide con el comando). La plataforma indica que no se reintente. No se realizó ningún otro intento.
+Pese a que `.claude/settings.json` contiene `Bash(powershell.exe -NoProfile -ExecutionPolicy Bypass -File bridge/test_claude_bridge.ps1)` en `permissions.allow`, la regla no se aplicó al comando. Posible causa (no verificada): el settings se carga al iniciar la sesión, o el matcher no reconoce la regla tal cual. Según la tarea no se probaron comandos alternativos ni se pidió intervención de Javier.
+
+## Archivos modificados
+- `CLAUDE_REPORT.md` únicamente. `.claude/settings.json`, `bridge/*`, `MASTER.md`, `ADN_APP.md`, `CLAUDE.md`, `NEXT_TASK.md`, `lib/` y `test/` sin cambios.
 
 ## Resultados
-- Sintaxis de ambos scripts: NO EJECUTADA (la comprobación vive dentro del harness).
-- Escenarios (`claude_exit_7`, `exit_code = 7`, no reintento, nueva versión de tarea, `BRIDGE_STATUS.md` solo en `bridge-status`, sin stdout/stderr, `main` remoto intacto, árbol sucio, commit parcial, `pull_failed`, `launch_exception`, repo real preservado): todos NO EJECUTADOS / SIN VERIFICAR. No se inventa ningún resultado.
-
-## Fallos encontrados y correcciones
-Ninguno demostrado (nada se ejecutó).
+- Número de ejecuciones del harness: 0.
+- Sintaxis de `bridge/claude_bridge.ps1` y `bridge/test_claude_bridge.ps1`: NO EJECUTADA (la comprobación vive dentro del harness).
+- Escenarios (`claude_exit_7`/`exit_code = 7`, no relanzar misma versión, nueva versión procesada, `BRIDGE_STATUS.md` solo en `bridge-status`, sin stdout/stderr, `main` remoto intacto, `blocked_dirty_tree`, commit parcial no propagado, `pull_failed`, `launch_exception`, repo real preservado): todos SIN VERIFICAR. No se inventa ningún resultado.
+- Fallos encontrados / correcciones: ninguno demostrado (nada se ejecutó).
 
 ## Confirmaciones
-- Ninguna prueba hizo push a `origin/main` real (no se ejecutó ninguna).
-- Repo real preservado: solo cambios intencionales de esta tarea.
-- El puente real no se reinició, mató ni duplicó.
-- `.claude/settings.json` NO fue retirado, según la tarea (las pruebas no se ejecutaron).
-- La nueva versión del puente (con `bridge-status`) sigue requiriendo reinicio manual para quedar activa.
+- No se usó Claude real para simular fallos.
+- No hubo push de prueba a GitHub real (no se ejecutó ninguna prueba); solo el push de este reporte.
+- Repo real preservado; solo cambió este reporte.
+- El puente real no fue reiniciado, matado ni duplicado.
+- `.claude/settings.json` no fue modificado ni eliminado.
 
 ## Riesgos pendientes
-- El harness (incluidos escenarios D/E y la nueva comprobación de sintaxis) sigue sin haberse parseado ni ejecutado; puede contener errores.
-- Tarea 005 no aprobable hasta ejecutar el harness con éxito.
+- El harness sigue sin haberse ejecutado; puede contener errores no detectados.
+- La Tarea 005 no es aprobable hasta que el harness corra con éxito.
 
-## PREGUNTA ABIERTA
-Contexto: el permiso `PowerShell(& .\bridge\test_claude_bridge.ps1)` publicado en `.claude/settings.json` no se aplicó en esta sesión; la ejecución fue denegada por falta de superficie de aprobación.
-Problema o decisión: no puedo ejecutar el harness desde esta sesión.
-Opciones conocidas:
-A) Que el Director verifique/ajuste la sintaxis de la regla (p. ej. `PowerShell(& .\bridge\test_claude_bridge.ps1:*)` o `PowerShell(.\bridge\test_claude_bridge.ps1)`) y relance la tarea en una sesión nueva, para que se cargue el settings.
-B) Ejecutar el harness fuera de la sesión (terminal del Director o de Javier) y devolver la salida para corregir lo que falle.
+## Decisiones pendientes para ChatGPT Director
+PREGUNTA ABIERTA
+Contexto: la regla `Bash(...)` exacta de `.claude/settings.json` no se aplicó; el comando fue denegado automáticamente por falta de superficie de aprobación.
+Problema o decisión: se necesita otro mecanismo para ejecutar el harness (p. ej. otro formato de regla o modo de permisos de la sesión, o ejecución fuera de esta sesión y devolución de la salida).
 Pregunta: ¿Cómo deseas que proceda?
